@@ -1,0 +1,1930 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    />
+    <title>Thermal Tug-of-War</title>
+    <style>
+      @import url("https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700;800&display=swap");
+
+      :root {
+        --bg: #080c18;
+        --panel: #101828;
+        --panel2: #162035;
+        --heat: #ff4e00;
+        --heat2: #ff8c42;
+        --cool: #00bfff;
+        --cool2: #44e5ff;
+        --target: #ffe066;
+        --success: #4cff91;
+        --text: #e8eaf6;
+        --muted: #6b7a99;
+        --border: #1e2d4a;
+      }
+
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      html,
+      body {
+        width: 100%;
+        height: 100%;
+        background: var(--bg);
+        color: var(--text);
+        font-family: "Space Grotesk", system-ui, sans-serif;
+        overflow: hidden;
+        user-select: none;
+        -webkit-user-select: none;
+        touch-action: manipulation;
+      }
+
+      /* ── SCREENS ── */
+      .screen {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.35s ease;
+        overflow-y: auto;
+        overflow-x: hidden;
+        -webkit-overflow-scrolling: touch;
+      }
+      .screen.active {
+        opacity: 1;
+        pointer-events: all;
+      }
+
+      /* ── START SCREEN ── */
+      #startScreen {
+        background: radial-gradient(
+          ellipse at 50% 30%,
+          #0d1e40 0%,
+          #080c18 70%
+        );
+      }
+      .start-logo {
+        font-size: clamp(2rem, 8vw, 4rem);
+        font-weight: 800;
+        letter-spacing: -1px;
+        line-height: 1.1;
+        text-align: center;
+        margin-bottom: 0.4rem;
+      }
+      .heat-word {
+        color: #ff8c42;
+        text-shadow: 0 0 25px #ff4e00;
+      }
+      .cool-word {
+        color: #44e5ff;
+        text-shadow: 0 0 25px #00bfff;
+      }
+      .start-sub {
+        color: var(--muted);
+        font-size: clamp(0.75rem, 3vw, 0.95rem);
+        font-weight: 500;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        margin-bottom: 2rem;
+        text-align: center;
+        padding: 0 1rem;
+      }
+      .thermo-preview {
+        width: clamp(55px, 12vw, 80px);
+        margin-bottom: 2rem;
+        filter: drop-shadow(0 0 14px rgba(255, 140, 66, 0.6));
+      }
+      .btn-play {
+        background: linear-gradient(135deg, #ff4e00 0%, #ff8c42 100%);
+        color: #fff;
+        border: none;
+        border-radius: 50px;
+        padding: clamp(0.8rem, 3vw, 1rem) clamp(3rem, 10vw, 4rem);
+        font-family: inherit;
+        font-size: clamp(1rem, 4vw, 1.3rem);
+        font-weight: 700;
+        letter-spacing: 0.05em;
+        cursor: pointer;
+        box-shadow: 0 0 35px rgba(255, 78, 0, 0.5);
+        transition: transform 0.15s;
+        margin-bottom: 1rem;
+        min-width: 200px;
+      }
+      .btn-play:active {
+        transform: scale(0.96);
+      }
+      .btn-howto {
+        background: transparent;
+        color: var(--muted);
+        border: 1.5px solid var(--border);
+        border-radius: 50px;
+        padding: clamp(0.6rem, 2vw, 0.75rem) clamp(2rem, 7vw, 2.8rem);
+        font-family: inherit;
+        font-size: clamp(0.85rem, 3vw, 1rem);
+        font-weight: 600;
+        cursor: pointer;
+        min-width: 160px;
+      }
+
+      /* ── INSTRUCTIONS SCREEN ── */
+      #instrScreen {
+        background: var(--bg);
+        padding: 1.2rem clamp(0.8rem, 4vw, 1.5rem);
+        justify-content: flex-start;
+      }
+      .instr-wrap {
+        width: 100%;
+        max-width: 640px;
+        padding: 0.5rem 0 4rem;
+      }
+      .instr-title {
+        font-size: clamp(1.2rem, 5vw, 1.8rem);
+        font-weight: 800;
+        margin-bottom: 1.2rem;
+        color: var(--cool2);
+        text-align: center;
+      }
+      .instr-section {
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: clamp(0.85rem, 3vw, 1.3rem);
+        margin-bottom: 0.85rem;
+      }
+      .instr-section h3 {
+        font-size: clamp(0.8rem, 2.5vw, 0.95rem);
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        color: var(--target);
+        margin-bottom: 0.7rem;
+      }
+      .step-list {
+        list-style: none;
+        counter-reset: steps;
+      }
+      .step-list li {
+        counter-increment: steps;
+        position: relative;
+        padding-left: 2.1rem;
+        margin-bottom: 0.55rem;
+        font-size: clamp(0.82rem, 2.5vw, 0.9rem);
+        line-height: 1.5;
+        color: #b0bdd8;
+      }
+      .step-list li::before {
+        content: counter(steps);
+        position: absolute;
+        left: 0;
+        top: 0.05rem;
+        width: 1.4rem;
+        height: 1.4rem;
+        background: var(--cool2);
+        color: var(--bg);
+        border-radius: 50%;
+        font-weight: 700;
+        font-size: 0.7rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .kbd-grid {
+        display: grid;
+        grid-template-columns: auto 1fr;
+        gap: 0.4rem 0.8rem;
+      }
+      .kbd-key {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        background: #1e2d4a;
+        border: 1.5px solid #2e4060;
+        border-radius: 6px;
+        padding: 0.18rem 0.45rem;
+        font-weight: 700;
+        font-size: 0.8rem;
+        color: var(--text);
+        box-shadow: 0 2px 0 #111;
+        white-space: nowrap;
+      }
+      .kbd-row {
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+      }
+      .kbd-label {
+        color: #8898b8;
+        font-size: clamp(0.78rem, 2.2vw, 0.88rem);
+      }
+      .touch-btns {
+        display: flex;
+        gap: 0.8rem;
+        align-items: center;
+        flex-wrap: wrap;
+      }
+      .touch-demo {
+        border-radius: 12px;
+        padding: 0.5rem 1.2rem;
+        font-weight: 700;
+        font-size: 0.95rem;
+        border: none;
+        pointer-events: none;
+      }
+      .touch-demo.h {
+        background: linear-gradient(135deg, #ff4e00, #ff8c42);
+        color: #fff;
+      }
+      .touch-demo.c {
+        background: linear-gradient(135deg, #00bfff, #44e5ff);
+        color: #041420;
+      }
+      .screenshot-box {
+        border: 2px dashed var(--border);
+        border-radius: 10px;
+        min-height: 130px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-direction: column;
+        gap: 0.4rem;
+        color: var(--muted);
+        font-size: 0.82rem;
+        background: rgba(255, 255, 255, 0.02);
+      }
+      .screenshot-label {
+        font-size: 0.65rem;
+        text-transform: uppercase;
+        letter-spacing: 0.15em;
+        color: #3a4d6a;
+      }
+      .tips-list {
+        list-style: none;
+      }
+      .tips-list li {
+        padding: 0.38rem 0;
+        font-size: clamp(0.78rem, 2.2vw, 0.88rem);
+        color: #8898b8;
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        align-items: flex-start;
+        gap: 0.45rem;
+      }
+      .tips-list li:last-child {
+        border-bottom: none;
+      }
+      .tips-list li::before {
+        content: "💡";
+        font-size: 0.82rem;
+        flex-shrink: 0;
+      }
+      .btn-back {
+        width: 100%;
+        background: var(--panel2);
+        color: var(--text);
+        border: 1.5px solid var(--border);
+        border-radius: 50px;
+        padding: 0.85rem;
+        font-family: inherit;
+        font-size: 0.95rem;
+        font-weight: 700;
+        cursor: pointer;
+        margin-top: 0.8rem;
+      }
+
+      /* ── GAME SCREEN ── */
+      #gameScreen {
+        background: var(--bg);
+        justify-content: flex-start;
+        overflow: hidden;
+      }
+
+      /* Background gradient — plain absolute, no fixed */
+      #bgGrad {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        pointer-events: none;
+        z-index: 0;
+        transition: background 0.6s ease;
+      }
+
+      /* Particle canvas — absolute inside gameScreen */
+      #particleCanvas {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+        z-index: 1;
+      }
+
+      /* All game UI sits above bg/particles */
+      #gameUI {
+        position: relative;
+        z-index: 2;
+        width: 100%;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
+        overflow: hidden;
+      }
+
+      /* HUD */
+      #hud {
+        width: 100%;
+        max-width: 700px;
+        margin: 0 auto;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: clamp(0.5rem, 2.5vh, 0.9rem) clamp(0.8rem, 3vw, 1.2rem);
+        flex-shrink: 0;
+      }
+      .hud-lives {
+        display: flex;
+        gap: 0.3rem;
+      }
+      .heart {
+        font-size: clamp(1.2rem, 4vw, 1.5rem);
+        transition:
+          transform 0.3s,
+          filter 0.3s;
+        filter: drop-shadow(0 0 4px rgba(255, 60, 60, 0.6));
+      }
+      .heart.lost {
+        filter: grayscale(1) opacity(0.22);
+        transform: scale(0.82);
+      }
+      .hud-center {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.05rem;
+      }
+      .hud-score {
+        font-size: clamp(0.85rem, 3vw, 1rem);
+        font-weight: 700;
+        color: var(--target);
+      }
+      .hud-round {
+        font-size: clamp(0.7rem, 2.5vw, 0.85rem);
+        color: var(--muted);
+        font-weight: 500;
+      }
+      #muteBtn {
+        background: var(--panel);
+        border: 1.5px solid var(--border);
+        border-radius: 50%;
+        width: clamp(38px, 10vw, 44px);
+        height: clamp(38px, 10vw, 44px);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        font-size: clamp(0.9rem, 3vw, 1.1rem);
+        flex-shrink: 0;
+      }
+
+      /* TIMER */
+      #timerWrap {
+        width: 100%;
+        max-width: 700px;
+        margin: 0 auto;
+        padding: 0 clamp(0.8rem, 3vw, 1.2rem) clamp(0.3rem, 1vh, 0.5rem);
+        flex-shrink: 0;
+      }
+      #timerLabel {
+        font-size: clamp(0.68rem, 2.5vw, 0.8rem);
+        color: var(--muted);
+        font-weight: 600;
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 0.2rem;
+      }
+      #timerBar {
+        height: 7px;
+        background: var(--panel2);
+        border-radius: 4px;
+        overflow: hidden;
+      }
+      #timerFill {
+        height: 100%;
+        width: 100%;
+        background: linear-gradient(90deg, #4cff91, #ffe066);
+        border-radius: 4px;
+        transition: background 0.3s;
+      }
+
+      /* MAIN PLAY AREA */
+      #playArea {
+        flex: 1;
+        width: 100%;
+        max-width: 700px;
+        margin: 0 auto;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: space-evenly;
+        padding: clamp(0.3rem, 1.5vh, 0.8rem) clamp(0.8rem, 3vw, 1.2rem);
+        min-height: 0;
+        overflow: hidden;
+      }
+
+      /* TEMP DISPLAY */
+      #tempDisplay {
+        width: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: clamp(0.8rem, 3vw, 2rem);
+      }
+      #thermometerWrap {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.3rem;
+        flex-shrink: 0;
+      }
+      #thermLabel {
+        font-size: clamp(0.62rem, 2vw, 0.78rem);
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        color: var(--muted);
+        font-weight: 600;
+      }
+      #thermSVG {
+        width: clamp(44px, 10vw, 68px);
+        transition: filter 0.3s;
+      }
+      .temp-nums {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.1rem;
+      }
+      #currentTempNum {
+        font-size: clamp(2rem, 7vw, 3rem);
+        font-weight: 800;
+        color: var(--text);
+        line-height: 1;
+        transition: color 0.3s;
+        white-space: nowrap;
+      }
+      .temp-unit {
+        font-size: 0.5em;
+        color: var(--muted);
+        font-weight: 500;
+      }
+      .vs-arrow {
+        color: var(--muted);
+        font-size: clamp(1rem, 3vw, 1.5rem);
+        font-weight: 800;
+        flex-shrink: 0;
+      }
+      #targetWrap {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.3rem;
+      }
+      #targetLabel {
+        font-size: clamp(0.62rem, 2vw, 0.78rem);
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        color: var(--target);
+        font-weight: 600;
+      }
+      #targetTempNum {
+        font-size: clamp(2rem, 7vw, 3rem);
+        font-weight: 800;
+        color: var(--target);
+        line-height: 1;
+        text-shadow: 0 0 18px rgba(255, 224, 102, 0.45);
+        transition: all 0.5s ease;
+        white-space: nowrap;
+      }
+      #phaseHint {
+        font-size: clamp(0.6rem, 2vw, 0.72rem);
+        color: var(--cool2);
+        font-weight: 500;
+        font-style: italic;
+        max-width: 130px;
+        text-align: center;
+        min-height: 1.2em;
+      }
+
+      /* PROGRESS BAR */
+      #progressWrap {
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        gap: 0.2rem;
+      }
+      #progressLabel {
+        display: flex;
+        justify-content: space-between;
+        font-size: clamp(0.62rem, 2vw, 0.74rem);
+        color: var(--muted);
+        font-weight: 500;
+      }
+      #progressTrack {
+        height: 10px;
+        background: var(--panel2);
+        border-radius: 5px;
+        overflow: hidden;
+        position: relative;
+      }
+      #progressFill {
+        height: 100%;
+        border-radius: 5px;
+        min-width: 4px;
+        transition:
+          width 0.1s ease,
+          background 0.3s;
+        background: linear-gradient(90deg, #00bfff, #4cff91);
+      }
+      #holdBar {
+        position: absolute;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(76, 255, 145, 0.28);
+        border-left: 2px solid #4cff91;
+        transition: width 0.1s linear;
+        pointer-events: none;
+      }
+
+      /* CONTROL BUTTONS */
+      #controlsWrap {
+        width: 100%;
+        display: flex;
+        gap: clamp(0.6rem, 2vw, 1rem);
+        align-items: center;
+        justify-content: center;
+      }
+      .ctrl-btn {
+        flex: 1;
+        max-width: 260px;
+        min-height: clamp(68px, 16vw, 92px);
+        border: none;
+        border-radius: 18px;
+        font-family: inherit;
+        font-size: clamp(1rem, 4vw, 1.3rem);
+        font-weight: 800;
+        cursor: pointer;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 0.05rem;
+        letter-spacing: 0.04em;
+        -webkit-tap-highlight-color: transparent;
+        transition:
+          transform 0.1s,
+          filter 0.15s;
+        position: relative;
+        overflow: hidden;
+        touch-action: manipulation;
+      }
+      .ctrl-btn:active {
+        transform: scale(0.94);
+      }
+      .ctrl-btn.pressed {
+        filter: brightness(1.22);
+      }
+      #heatBtn {
+        background: linear-gradient(145deg, #ff4e00, #ff8c42);
+        color: #fff;
+        box-shadow: 0 4px 22px rgba(255, 78, 0, 0.45);
+      }
+      #coolBtn {
+        background: linear-gradient(145deg, #007bb8, #00bfff);
+        color: #fff;
+        box-shadow: 0 4px 22px rgba(0, 191, 255, 0.35);
+      }
+      .btn-icon {
+        font-size: clamp(1.4rem, 5vw, 1.9rem);
+        line-height: 1.1;
+      }
+      .btn-key-hint {
+        font-size: 0.65rem;
+        opacity: 0.6;
+        font-weight: 500;
+        display: none;
+      }
+      @media (hover: hover) and (pointer: fine) {
+        .btn-key-hint {
+          display: block;
+        }
+      }
+
+      /* ROUND NOTIFICATION */
+      #roundNotif {
+        position: absolute;
+        top: clamp(70px, 15vw, 100px);
+        left: 50%;
+        transform: translateX(-50%);
+        background: var(--success);
+        color: #041a0a;
+        padding: 0.38rem 1.1rem;
+        border-radius: 50px;
+        font-weight: 700;
+        font-size: 0.82rem;
+        pointer-events: none;
+        opacity: 0;
+        z-index: 10;
+        white-space: nowrap;
+        transition: opacity 0.3s ease;
+      }
+
+      /* ── END SCREEN ── */
+      #endScreen {
+        background: radial-gradient(
+          ellipse at 50% 40%,
+          #0d1e40 0%,
+          #080c18 70%
+        );
+        gap: 1.4rem;
+        padding: 1.5rem 1.2rem;
+      }
+      .end-title {
+        font-size: clamp(2rem, 8vw, 3.5rem);
+        font-weight: 800;
+        text-align: center;
+        line-height: 1.1;
+      }
+      .end-title.win {
+        color: #4cff91;
+        text-shadow: 0 0 35px rgba(76, 255, 145, 0.5);
+      }
+      .end-title.lose {
+        color: #ff8c42;
+        text-shadow: 0 0 35px rgba(255, 78, 0, 0.4);
+      }
+      .end-stats {
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 18px;
+        padding: 1.3rem 1.5rem;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1rem;
+        max-width: 360px;
+        width: 100%;
+      }
+      .stat-item {
+        text-align: center;
+      }
+      .stat-num {
+        font-size: clamp(1.8rem, 6vw, 2.5rem);
+        font-weight: 800;
+        color: var(--target);
+      }
+      .stat-label {
+        font-size: 0.75rem;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+      }
+      .btn-retry {
+        background: linear-gradient(135deg, #ff4e00, #ff8c42);
+        color: #fff;
+        border: none;
+        border-radius: 50px;
+        padding: 0.95rem 3rem;
+        font-family: inherit;
+        font-size: 1.05rem;
+        font-weight: 700;
+        cursor: pointer;
+        box-shadow: 0 0 30px rgba(255, 78, 0, 0.4);
+        min-width: 200px;
+      }
+      .btn-menu-end {
+        background: transparent;
+        border: 1.5px solid var(--border);
+        color: var(--muted);
+        border-radius: 50px;
+        padding: 0.65rem 2.2rem;
+        font-family: inherit;
+        font-size: 0.92rem;
+        font-weight: 600;
+        cursor: pointer;
+      }
+      .btn-start-now {
+        background: linear-gradient(135deg, #4cff91, #00d4ff);
+        border: none;
+        color: #041420;
+        border-radius: 40px;
+        padding: 0.7rem;
+        font-family: inherit;
+        font-weight: 700;
+        font-size: 0.9rem;
+        cursor: pointer;
+        box-shadow: 0 0 25px rgba(76, 255, 145, 0.27);
+        transition: transform 0.15s;
+      }
+      .btn-start-now:active {
+        transform: scale(0.96);
+      }
+
+      @media (max-height: 580px) {
+        #hud {
+          padding: 0.3rem 0.8rem;
+        }
+        .btn-icon {
+          font-size: 1.2rem;
+        }
+        .ctrl-btn {
+          min-height: 56px;
+        }
+        #playArea {
+          justify-content: space-between;
+        }
+      }
+    </style><!-- styling -->
+  </head>
+  <body>
+    <!-- ══ START SCREEN ══ -->
+    <div class="screen active" id="startScreen">
+      <svg
+        class="thermo-preview"
+        viewBox="0 0 60 160"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <rect
+          x="22"
+          y="8"
+          width="16"
+          height="110"
+          rx="8"
+          fill="#1a2540"
+          stroke="#2e4060"
+          stroke-width="1.5"
+        />
+        <rect x="27" y="12" width="6" height="100" rx="3" fill="#0a1530" />
+        <rect
+          x="27"
+          id="logoMercury"
+          y="72"
+          width="6"
+          height="40"
+          rx="3"
+          fill="url(#lmg)"
+        />
+        <circle cx="30" cy="132" r="14" fill="url(#lbg)" />
+        <circle cx="30" cy="132" r="9" fill="url(#lmg)" />
+        <defs>
+          <linearGradient id="lmg" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#ff4e00" />
+            <stop offset="100%" stop-color="#ff8c42" />
+          </linearGradient>
+          <radialGradient id="lbg" cx="40%" cy="35%">
+            <stop offset="0%" stop-color="#ff8c42" />
+            <stop offset="100%" stop-color="#cc3300" />
+          </radialGradient>
+        </defs>
+      </svg>
+      <h1 class="start-logo">
+        <span class="heat-word">THERMAL</span><br />
+        <span>TUG-OF-</span><span class="cool-word">WAR</span>
+      </h1>
+      <p class="start-sub">Physics · Thermodynamics · Heat Transfer</p>
+      <button class="btn-play" id="startPlayBtn">▶ PLAY NOW</button>
+      <button class="btn-howto" id="startHowBtn">How to Play</button>
+    </div> <!-- /startScreen -->
+
+    <!-- ══ INSTRUCTIONS SCREEN ══ -->
+    <div class="screen" id="instrScreen">
+      <div class="instr-wrap">
+        <h2 class="instr-title">⚗️ How to Play</h2>
+        <div class="instr-section">
+          <h3>📋 Step-by-Step Guide</h3>
+          <ol class="step-list">
+            <li>
+              Look at the <strong>target temperature</strong> shown on the
+              right.
+            </li>
+            <li>
+              Tap <strong>HEAT ↑</strong> to raise the temperature or
+              <strong>COOL ↓</strong> to lower it.
+            </li>
+            <li>
+              Watch out! Temperature <strong>drifts back</strong> to room
+              temperature (25°C) on its own.
+            </li>
+            <li>
+              Reach and <strong>HOLD</strong> the target temperature for 2
+              seconds to win the round.
+            </li>
+            <li>
+              Complete all <strong>10 rounds</strong> without losing all 3 lives
+              or running out of time.
+            </li>
+          </ol>
+        </div>
+        <div class="instr-section">
+          <h3>⌨️ Keyboard Controls</h3>
+          <div class="kbd-grid">
+            <div class="kbd-row">
+              <span class="kbd-key">↑</span>&nbsp;<span class="kbd-key">→</span>
+            </div>
+            <span class="kbd-label">= Heat up</span>
+            <div class="kbd-row">
+              <span class="kbd-key">↓</span>&nbsp;<span class="kbd-key">←</span>
+            </div>
+            <span class="kbd-label">= Cool down</span>
+            <div class="kbd-row"><span class="kbd-key">M</span></div>
+            <span class="kbd-label">= Mute / Unmute</span>
+            <div class="kbd-row"><span class="kbd-key">Space</span></div>
+            <span class="kbd-label">= Pause / Resume</span>
+          </div>
+        </div>
+        <div class="instr-section">
+          <h3>📱 Touch Controls</h3>
+          <div class="touch-btns">
+            <span class="touch-demo h">🔥 HEAT</span>
+            <span style="color: var(--muted); font-size: 0.85rem"
+              >Tap to warm up</span
+            >
+            <span class="touch-demo c">❄️ COOL</span>
+            <span style="color: var(--muted); font-size: 0.85rem"
+              >Tap to chill</span
+            >
+          </div>
+        </div>
+        <div class="instr-section">
+          <h3>📸 Gameplay Screenshot</h3>
+          <div class="screenshot-box">
+            <img src="./asset/gamescreen.png" width="100%" height="100%" />
+          </div>
+        </div>
+        <div class="instr-section">
+          <h3>💡 Game Tips</h3>
+          <ul class="tips-list">
+            <li>
+              Temperature drifts! Tap <strong>continuously</strong> to fight it
+              back.
+            </li>
+            <li>
+              Watch the thermometer — don't <strong>overshoot</strong> the
+              target!
+            </li>
+            <li>
+              Some rounds require holding steady for
+              <strong>2–3 seconds</strong>.
+            </li>
+            <li>
+              Phase changes (boiling = 100°C, freezing = 0°C) are
+              <strong>physics clues</strong>!
+            </li>
+            <li>
+              Later rounds add <strong>thermal inertia</strong> — buttons
+              respond with delay!
+            </li>
+          </ul>
+        </div>
+        <!-- Two buttons: Back to Menu + Start Now -->
+        <div
+          style="display: flex; gap: 0.8rem; width: 100%; margin-top: 0.2rem"
+        >
+          <button class="btn-back" id="backBtn" style="flex: 1">
+            ← Back to Menu
+          </button>
+          <button class="btn-start-now" id="startNowBtn" style="flex: 1">
+            ▶ Start Now
+          </button>
+        </div>
+      </div>
+    </div> <!-- /instScreen -->
+
+    <!-- ══ GAME SCREEN ══ -->
+    <div class="screen" id="gameScreen">
+      <div id="bgGrad"></div>
+      <canvas id="particleCanvas"></canvas>
+      <div id="gameUI">
+        <!-- HUD -->
+        <div id="hud">
+          <div class="hud-lives">
+            <span class="heart" id="h1">❤️</span>
+            <span class="heart" id="h2">❤️</span>
+            <span class="heart" id="h3">❤️</span>
+          </div>
+          <div class="hud-center">
+            <div class="hud-score" id="scoreDisplay">Score: 0</div>
+            <div class="hud-round" id="roundDisplay">Round 1 / 10</div>
+          </div>
+          <div id="muteBtn">🔊</div>
+        </div>
+        <!-- TIMER -->
+        <div id="timerWrap">
+          <div id="timerLabel">
+            <span>⏱ Timer</span><span id="timerNum">20.0s</span>
+          </div>
+          <div id="timerBar"><div id="timerFill"></div></div>
+        </div>
+        <!-- ROUND NOTIFICATION (inside gameUI so it inherits z-index) -->
+        <div id="roundNotif"></div>
+        <!-- PLAY AREA -->
+        <div id="playArea">
+          <!-- THERMOMETER + TEMPS -->
+          <div id="tempDisplay">
+            <div id="thermometerWrap">
+              <div id="thermLabel">CURRENT</div>
+              <svg
+                id="thermSVG"
+                viewBox="0 0 60 180"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <defs>
+                  <linearGradient id="mercGrad" x1="0" y1="1" x2="0" y2="0">
+                    <stop offset="0%" stop-color="#ff8c42" />
+                    <stop offset="100%" stop-color="#ff4e00" />
+                  </linearGradient>
+                  <radialGradient id="bulbGrad" cx="35%" cy="30%">
+                    <stop offset="0%" stop-color="#ff8c42" />
+                    <stop offset="100%" stop-color="#cc2200" />
+                  </radialGradient>
+                  <filter id="tglow">
+                    <feGaussianBlur stdDeviation="2.5" result="b" />
+                    <feMerge>
+                      <feMergeNode in="b" />
+                      <feMergeNode in="SourceGraphic" />
+                    </feMerge>
+                  </filter>
+                </defs>
+                <rect
+                  x="22"
+                  y="15"
+                  width="16"
+                  height="120"
+                  rx="8"
+                  fill="#101828"
+                  stroke="#2e4060"
+                  stroke-width="1.5"
+                />
+                <line
+                  x1="22"
+                  y1="30"
+                  x2="28"
+                  y2="30"
+                  stroke="#2e4060"
+                  stroke-width="1"
+                />
+                <line
+                  x1="22"
+                  y1="50"
+                  x2="28"
+                  y2="50"
+                  stroke="#2e4060"
+                  stroke-width="1"
+                />
+                <line
+                  x1="22"
+                  y1="70"
+                  x2="28"
+                  y2="70"
+                  stroke="#2e4060"
+                  stroke-width="1"
+                />
+                <line
+                  x1="22"
+                  y1="90"
+                  x2="28"
+                  y2="90"
+                  stroke="#2e4060"
+                  stroke-width="1"
+                />
+                <line
+                  x1="22"
+                  y1="110"
+                  x2="28"
+                  y2="110"
+                  stroke="#2e4060"
+                  stroke-width="1"
+                />
+                <line
+                  x1="22"
+                  y1="130"
+                  x2="28"
+                  y2="130"
+                  stroke="#2e4060"
+                  stroke-width="1"
+                />
+                <line
+                  id="targetMarker"
+                  x1="31"
+                  y1="90"
+                  x2="40"
+                  y2="90"
+                  stroke="#ffe066"
+                  stroke-width="2.5"
+                  opacity="0.95"
+                />
+                <rect
+                  x="26"
+                  id="thermMercury"
+                  y="90"
+                  width="8"
+                  height="40"
+                  rx="4"
+                  fill="url(#mercGrad)"
+                  filter="url(#tglow)"
+                />
+                <circle
+                  cx="30"
+                  cy="150"
+                  r="14"
+                  fill="#101828"
+                  stroke="#2e4060"
+                  stroke-width="1.5"
+                />
+                <circle
+                  cx="30"
+                  cy="150"
+                  r="11"
+                  fill="url(#bulbGrad)"
+                  filter="url(#tglow)"
+                  id="thermBulb"
+                />
+                <rect
+                  x="22"
+                  y="15"
+                  width="16"
+                  height="120"
+                  rx="8"
+                  fill="none"
+                  stroke="#3a5070"
+                  stroke-width="0.5"
+                />
+              </svg>
+            </div>
+            <div class="temp-nums">
+              <div id="currentTempNum">25<span class="temp-unit">°C</span></div>
+            </div>
+            <div class="vs-arrow">→</div>
+            <div id="targetWrap">
+              <div id="targetLabel">TARGET</div>
+              <div id="targetTempNum">50<span class="temp-unit">°C</span></div>
+              <div id="phaseHint">Warm it up!</div>
+            </div>
+          </div>
+
+          <!-- PROGRESS BAR -->
+          <div id="progressWrap">
+            <div id="progressLabel">
+              <span>Distance to target</span>
+              <span id="holdLabel">Hold: —</span>
+            </div>
+            <div id="progressTrack">
+              <div id="progressFill" style="width: 0%"></div>
+              <div id="holdBar" style="width: 0%"></div>
+            </div>
+          </div>
+
+          <!-- BUTTONS -->
+          <div id="controlsWrap">
+            <button class="ctrl-btn" id="coolBtn" aria-label="Cool down">
+              <span class="btn-icon">❄️</span>COOL
+              <span class="btn-key-hint">↓ / ← KEY</span>
+            </button>
+            <button class="ctrl-btn" id="heatBtn" aria-label="Heat up">
+              <span class="btn-icon">🔥</span>HEAT
+              <span class="btn-key-hint">↑ / → KEY</span>
+            </button>
+          </div>
+        </div>
+        <!-- /playArea -->
+      </div>
+      <!-- /gameUI -->
+    </div>
+    <!-- /gameScreen -->
+
+    <!-- ══ END SCREEN ══ -->
+    <div class="screen" id="endScreen">
+      <div id="endTitle" class="end-title win">🎉 VICTORY!</div>
+      <div class="end-stats">
+        <div class="stat-item">
+          <div class="stat-num" id="finalScore">0</div>
+          <div class="stat-label">Score</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-num" id="finalRounds">0</div>
+          <div class="stat-label">Rounds Won</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-num" id="finalLives">0</div>
+          <div class="stat-label">Lives Left</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-num" id="finalStreak">0</div>
+          <div class="stat-label">Best Streak</div>
+        </div>
+      </div>
+      <button class="btn-retry" id="retryBtn">🔄 Play Again</button>
+      <button class="btn-menu-end" id="menuBtn">← Main Menu</button>
+    </div> <!-- /endScreen -->
+
+    <script>
+      /* ═══════ AUDIO ═══════ */
+      let audioCtx = null,
+        masterGain,
+        musicGain,
+        sfxGain;
+      let musicRunning = false,
+        muted = false,
+        musicLoopTO = null;
+
+      function ensureAudio() {
+        if (audioCtx) return;
+        try {
+          audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+          masterGain = audioCtx.createGain();
+          masterGain.gain.value = 1.0;
+          musicGain = audioCtx.createGain();
+          musicGain.gain.value = 0.22;
+          sfxGain = audioCtx.createGain();
+          sfxGain.gain.value = 1.4;
+          musicGain.connect(masterGain);
+          sfxGain.connect(masterGain);
+          masterGain.connect(audioCtx.destination);
+        } catch (e) {
+          audioCtx = null;
+        }
+      }
+
+      function makeNote(freq, type, dur, vol, delay, targetFreq) {
+        if (!audioCtx || muted) return;
+        try {
+          const t = audioCtx.currentTime + delay;
+          const o = audioCtx.createOscillator(),
+            g = audioCtx.createGain(),
+            f = audioCtx.createBiquadFilter();
+          f.type = "lowpass";
+          f.frequency.value = 3000;
+          o.type = type;
+          o.frequency.setValueAtTime(freq, t);
+          if (targetFreq != null)
+            o.frequency.linearRampToValueAtTime(targetFreq, t + dur);
+          g.gain.setValueAtTime(0.001, t);
+          g.gain.linearRampToValueAtTime(vol, t + 0.02);
+          g.gain.setValueAtTime(vol, t + dur - 0.05);
+          g.gain.linearRampToValueAtTime(0.001, t + dur);
+          o.connect(f);
+          f.connect(g);
+          g.connect(sfxGain);
+          o.start(t);
+          o.stop(t + dur + 0.02);
+        } catch (e) {}
+      }
+
+      function playSFX(type) {
+        if (!audioCtx || muted) return;
+        if (audioCtx.state === "suspended") audioCtx.resume();
+        if (type === "heat") {
+          makeNote(220, "sawtooth", 0.18, 0.3, 0, 440);
+          makeNote(330, "sine", 0.14, 0.2, 0.02, 520);
+        } else if (type === "cool") {
+          makeNote(660, "sine", 0.18, 0.28, 0, 300);
+          makeNote(440, "triangle", 0.14, 0.18, 0.03, 260);
+        } else if (type === "success") {
+          [523, 659, 784, 1047].forEach((f, i) =>
+            makeNote(f, "sine", 0.3, 0.35, i * 0.1),
+          );
+        } else if (type === "fail") {
+          makeNote(440, "sine", 0.25, 0.25, 0, 200);
+          makeNote(350, "sine", 0.2, 0.18, 0.12, 170);
+        } else if (type === "loselife") {
+          [330, 277, 220].forEach((f, i) =>
+            makeNote(f, "triangle", 0.28, 0.3, i * 0.1, f - 50),
+          );
+        } else if (type === "roundtransition") {
+          makeNote(880, "sine", 0.15, 0.22, 0, 1100);
+          makeNote(1100, "sine", 0.12, 0.15, 0.08, 1320);
+        } else if (type === "gameover") {
+          [440, 392, 349, 294].forEach((f, i) =>
+            makeNote(f, "sine", 0.3, 0.3, i * 0.15, f - 40),
+          );
+        } else if (type === "victory") {
+          [523, 659, 784, 880, 1047, 1319].forEach((f, i) =>
+            makeNote(f, "sine", 0.35, 0.38, i * 0.1, f + 80),
+          );
+        }
+      }
+
+      function startMusic() {
+        if (!audioCtx || musicRunning) return;
+        musicRunning = true;
+        const notes = [
+          { f: 523, d: 0.25 },
+          { f: 659, d: 0.25 },
+          { f: 784, d: 0.25 },
+          { f: 880, d: 0.5 },
+          { f: 784, d: 0.25 },
+          { f: 659, d: 0.25 },
+          { f: 523, d: 0.5 },
+          { f: 392, d: 0.25 },
+          { f: 523, d: 0.25 },
+          { f: 659, d: 0.25 },
+          { f: 523, d: 0.5 },
+          { f: 440, d: 0.25 },
+          { f: 523, d: 0.25 },
+          { f: 659, d: 0.25 },
+          { f: 784, d: 0.75 },
+          { f: 880, d: 0.25 },
+          { f: 784, d: 0.25 },
+          { f: 659, d: 0.25 },
+          { f: 523, d: 0.25 },
+          { f: 440, d: 0.5 },
+          { f: 392, d: 0.25 },
+          { f: 440, d: 0.25 },
+          { f: 523, d: 0.25 },
+          { f: 659, d: 0.75 },
+        ];
+        const chords = [
+          [261, 329, 392],
+          [294, 370, 440],
+          [261, 329, 392],
+          [330, 392, 494],
+          [261, 329, 392],
+          [294, 370, 440],
+          [261, 329, 392],
+          [330, 392, 494],
+        ];
+        const totalDur = notes.reduce((a, n) => a + n.d, 0);
+        function scheduleLoop(st) {
+          if (!musicRunning) return;
+          try {
+            let t = st;
+            notes.forEach((n) => {
+              const o = audioCtx.createOscillator(),
+                g = audioCtx.createGain(),
+                fl = audioCtx.createBiquadFilter();
+              fl.type = "lowpass";
+              fl.frequency.value = 1500;
+              o.type = "sine";
+              o.frequency.value = n.f;
+              g.gain.setValueAtTime(0.001, t);
+              g.gain.linearRampToValueAtTime(0.5, t + 0.03);
+              g.gain.setValueAtTime(0.4, t + n.d - 0.04);
+              g.gain.linearRampToValueAtTime(0.001, t + n.d);
+              o.connect(fl);
+              fl.connect(g);
+              g.connect(musicGain);
+              o.start(t);
+              o.stop(t + n.d + 0.01);
+              t += n.d;
+            });
+            t = st;
+            const cd = totalDur / chords.length;
+            chords.forEach((chord) => {
+              chord.forEach((freq) => {
+                const o = audioCtx.createOscillator(),
+                  g = audioCtx.createGain(),
+                  fl = audioCtx.createBiquadFilter();
+                fl.type = "lowpass";
+                fl.frequency.value = 600;
+                o.type = "triangle";
+                o.frequency.value = freq;
+                g.gain.setValueAtTime(0.001, t);
+                g.gain.linearRampToValueAtTime(0.08, t + 0.12);
+                g.gain.setValueAtTime(0.06, t + cd - 0.1);
+                g.gain.linearRampToValueAtTime(0.001, t + cd);
+                o.connect(fl);
+                fl.connect(g);
+                g.connect(musicGain);
+                o.start(t);
+                o.stop(t + cd + 0.01);
+              });
+              t += cd;
+            });
+          } catch (e) {}
+          musicLoopTO = setTimeout(
+            () => scheduleLoop(audioCtx.currentTime + 0.05),
+            (totalDur - 0.12) * 1000,
+          );
+        }
+        scheduleLoop(audioCtx.currentTime + 0.05);
+      }
+      function stopMusic() {
+        musicRunning = false;
+        clearTimeout(musicLoopTO);
+      }
+      function toggleMute() {
+        muted = !muted;
+        if (audioCtx)
+          masterGain.gain.setTargetAtTime(
+            muted ? 0 : 0.8,
+            audioCtx.currentTime,
+            0.05,
+          );
+        document.getElementById("muteBtn").textContent = muted ? "🔇" : "🔊";
+      }
+
+      /* ═══════ PARTICLES ═══════ */
+      const pCanvas = document.getElementById("particleCanvas");
+      const pCtx = pCanvas.getContext("2d");
+      let particles = [];
+
+      function resizeCanvas() {
+        const gs = document.getElementById("gameScreen");
+        pCanvas.width = gs.offsetWidth;
+        pCanvas.height = gs.offsetHeight;
+      }
+      window.addEventListener("resize", resizeCanvas);
+
+      function spawnParticle(type) {
+        const btnEl = document.getElementById(
+          type === "heat" ? "heatBtn" : "coolBtn",
+        );
+        const gameEl = document.getElementById("gameScreen");
+        const gb = gameEl.getBoundingClientRect();
+        const br = btnEl.getBoundingClientRect();
+        const cx = br.left - gb.left + br.width / 2;
+        const cy = br.top - gb.top + br.height / 2;
+        for (let i = 0; i < 5; i++) {
+          const a = Math.random() * Math.PI * 2,
+            sp = 2 + Math.random() * 3;
+          particles.push({
+            type,
+            x: cx + (Math.random() - 0.5) * 28,
+            y: cy,
+            vx: Math.cos(a) * sp * 0.4 + (Math.random() - 0.5) * 0.5,
+            vy:
+              type === "heat"
+                ? -(2 + Math.random() * 3)
+                : 0.8 + Math.random() * 2,
+            life: 1,
+            decay: 0.022 + Math.random() * 0.018,
+            size: 5 + Math.random() * 7,
+            useChar: Math.random() > 0.45,
+            char: type === "heat" ? "🔥" : "❄️",
+          });
+        }
+      }
+      function updateParticles() {
+        particles = particles.filter((p) => p.life > 0);
+        particles.forEach((p) => {
+          p.x += p.vx;
+          p.y += p.vy;
+          p.life -= p.decay;
+          if (p.type === "heat") p.vy -= 0.07;
+          p.vx *= 0.98;
+        });
+      }
+      function drawParticles() {
+        pCtx.clearRect(0, 0, pCanvas.width, pCanvas.height);
+        particles.forEach((p) => {
+          pCtx.save();
+          pCtx.globalAlpha = Math.max(0, p.life);
+          if (p.useChar) {
+            pCtx.font = `${p.size * 2}px serif`;
+            pCtx.fillText(p.char, p.x, p.y);
+          } else {
+            pCtx.beginPath();
+            pCtx.arc(p.x, p.y, p.size * 0.5, 0, Math.PI * 2);
+            pCtx.fillStyle =
+              p.type === "heat"
+                ? `hsl(${20 + Math.random() * 30},100%,${55 + p.life * 20}%)`
+                : `hsl(${195 + Math.random() * 25},100%,${65 + p.life * 15}%)`;
+            pCtx.fill();
+          }
+          pCtx.restore();
+        });
+      }
+
+      /* ═══════ GAME STATE ═══════ */
+      const ROOM_TEMP = 25,
+        TIMER_MAX = 20,
+        TOTAL_ROUNDS = 10;
+      const ROUNDS = [
+        {
+          targets: [50],
+          drift: 1.0,
+          holdTime: 2,
+          tol: 3,
+          delay: 0,
+          hint: "Warm it up!",
+          pts: 100,
+        },
+        {
+          targets: [10],
+          drift: 1.0,
+          holdTime: 2,
+          tol: 3,
+          delay: 0,
+          hint: "Below room temperature!",
+          pts: 100,
+        },
+        {
+          targets: [75],
+          drift: 2.0,
+          holdTime: 2,
+          tol: 3,
+          delay: 0,
+          hint: "Getting hotter — watch out!",
+          pts: 150,
+        },
+        {
+          targets: [0],
+          drift: 2.0,
+          holdTime: 2,
+          tol: 3,
+          delay: 0,
+          hint: "Freezing point of water (0°C)",
+          pts: 150,
+        },
+        {
+          targets: [100],
+          drift: 3.0,
+          holdTime: 2,
+          tol: 2.5,
+          delay: 0,
+          hint: "Boiling point of water (100°C)",
+          pts: 200,
+        },
+        {
+          targets: [37.5],
+          drift: 3.0,
+          holdTime: 2,
+          tol: 2.5,
+          delay: 0,
+          hint: "Human body temp (37.5°C)",
+          pts: 200,
+        },
+        {
+          targets: [80],
+          drift: 4.0,
+          holdTime: 3,
+          tol: 1.5,
+          delay: 0,
+          hint: "Hold steady for 3 seconds!",
+          pts: 250,
+        },
+        {
+          targets: [-10],
+          drift: 4.0,
+          holdTime: 3,
+          tol: 1.5,
+          delay: 0,
+          hint: "Below freezing! Drift is fast.",
+          pts: 250,
+        },
+        {
+          targets: [20, 60, 100],
+          drift: 5.0,
+          holdTime: 2,
+          tol: 2,
+          delay: 70,
+          hint: "Multi-target! Inertia active.",
+          pts: 350,
+        },
+        {
+          targets: [-10, 50, 150],
+          drift: 5.0,
+          holdTime: 2,
+          tol: 2,
+          delay: 120,
+          hint: "Final challenge! Max drift!",
+          pts: 500,
+        },
+      ];
+
+      let gs = {};
+      let rafID = null,
+        lastTime = 0,
+        inputQueue = [];
+      let keyRepeat = null;
+      const keysHeld = {};
+
+      function getCfg() {
+        return ROUNDS[Math.min(gs.round, ROUNDS.length - 1)];
+      }
+      function resetGame() {
+        gs = {
+          round: 0,
+          lives: 3,
+          score: 0,
+          roundsWon: 0,
+          bestStreak: 0,
+          streak: 0,
+          currentTemp: ROOM_TEMP,
+          targetTemp: ROUNDS[0].targets[0],
+          timer: TIMER_MAX,
+          holdProgress: 0,
+          phase: "playing",
+          paused: false,
+          targetIdx: 0,
+          inputDelay: 0,
+          _notifTO: null,
+        };
+      }
+
+      /* ═══════ THERMOMETER ═══════ */
+      const TMIN = -25,
+        TMAX = 170,
+        TY_TOP = 18,
+        TY_BOT = 136;
+      function tempToY(t) {
+        return TY_BOT - ((t - TMIN) / (TMAX - TMIN)) * (TY_BOT - TY_TOP);
+      }
+
+      function updateThermometer(cur, tgt) {
+        const mercury = document.getElementById("thermMercury");
+        const marker = document.getElementById("targetMarker");
+        const bulb = document.getElementById("thermBulb");
+        const svg = document.getElementById("thermSVG");
+        const cY = Math.max(TY_TOP, Math.min(TY_BOT, tempToY(cur)));
+        const tY = Math.max(TY_TOP + 2, Math.min(TY_BOT - 2, tempToY(tgt)));
+        mercury.setAttribute("y", cY);
+        mercury.setAttribute("height", Math.max(2, TY_BOT - cY));
+        marker.setAttribute("y1", tY);
+        marker.setAttribute("y2", tY);
+        const hot = Math.max(0, Math.min(1, (cur - TMIN) / (TMAX - TMIN)));
+        const hue = Math.round(220 - hot * 200),
+          sat = 80 + hot * 20,
+          lit = 50 + hot * 10;
+        const col = `hsl(${hue},${sat}%,${lit}%)`;
+        mercury.setAttribute("fill", col);
+        bulb.setAttribute("fill", col);
+        bulb.setAttribute("r", String(10 + hot * 2.5));
+        svg.style.filter = `drop-shadow(0 0 ${8 + hot * 18}px ${col})`;
+      }
+
+      /* ═══════ UI ═══════ */
+      function updateHUD() {
+        document.getElementById("scoreDisplay").textContent =
+          `Score: ${gs.score}`;
+        document.getElementById("roundDisplay").textContent =
+          `Round ${gs.round + 1} / ${TOTAL_ROUNDS}`;
+        ["h1", "h2", "h3"].forEach((id, i) =>
+          document.getElementById(id).classList.toggle("lost", i >= gs.lives),
+        );
+        const pct = gs.timer / TIMER_MAX;
+        document.getElementById("timerFill").style.width = pct * 100 + "%";
+        document.getElementById("timerNum").textContent =
+          gs.timer.toFixed(1) + "s";
+        const tf = document.getElementById("timerFill");
+        tf.style.background =
+          pct > 0.5
+            ? "linear-gradient(90deg,#4cff91,#ffe066)"
+            : pct > 0.25
+              ? "linear-gradient(90deg,#ffe066,#ff8c42)"
+              : "linear-gradient(90deg,#ff4e00,#ff2200)";
+      }
+
+      function updateDisplay() {
+        const cur = Math.round(gs.currentTemp * 10) / 10;
+        document.getElementById("currentTempNum").innerHTML =
+          `${cur}<span class="temp-unit">°C</span>`;
+        document.getElementById("targetTempNum").innerHTML =
+          `${gs.targetTemp}<span class="temp-unit">°C</span>`;
+        document.getElementById("phaseHint").textContent = getCfg().hint;
+        const diff = Math.abs(gs.currentTemp - gs.targetTemp);
+        const pct = Math.max(0, 1 - diff / 50);
+        const pf = document.getElementById("progressFill");
+        pf.style.width = pct * 100 + "%";
+        pf.style.background =
+          pct > 0.85
+            ? "linear-gradient(90deg,#4cff91,#00ffd0)"
+            : pct > 0.5
+              ? "linear-gradient(90deg,#ffe066,#4cff91)"
+              : "linear-gradient(90deg,#ff4e00,#ffe066)";
+        const cfg = getCfg();
+        const hp = gs.holdProgress / cfg.holdTime;
+        document.getElementById("holdBar").style.width =
+          Math.min(100, hp * 100) + "%";
+        document.getElementById("holdLabel").textContent =
+          gs.holdProgress > 0
+            ? `Hold: ${gs.holdProgress.toFixed(1)}s / ${cfg.holdTime}s`
+            : "Hold: —";
+        const hot = Math.max(
+          0,
+          Math.min(1, (gs.currentTemp - TMIN) / (TMAX - TMIN)),
+        );
+        const hue = Math.round(220 - hot * 200);
+        document.getElementById("bgGrad").style.background =
+          `radial-gradient(ellipse at 50% 60%, hsla(${hue},40%,10%,0.55) 0%, transparent 70%)`;
+        const el = document.getElementById("currentTempNum");
+        if (diff <= cfg.tol) el.style.color = "#4cff91";
+        else
+          el.style.color =
+            gs.currentTemp > gs.targetTemp ? "#ff8c42" : "#44e5ff";
+        updateThermometer(gs.currentTemp, gs.targetTemp);
+      }
+
+      function showNotif(text, color = "#4cff91") {
+        const el = document.getElementById("roundNotif");
+        el.textContent = text;
+        el.style.background = color;
+        el.style.color = color === "#4cff91" ? "#041a0a" : "#fff";
+        el.style.opacity = "1";
+        clearTimeout(gs._notifTO);
+        gs._notifTO = setTimeout(() => {
+          el.style.opacity = "0";
+        }, 1800);
+      }
+
+      /* ═══════ ROUND LOGIC ═══════ */
+      function startRound(idx) {
+        gs.round = idx;
+        const cfg = ROUNDS[idx];
+        gs.targetIdx = 0;
+        gs.targetTemp = cfg.targets[0];
+        gs.timer = TIMER_MAX;
+        gs.holdProgress = 0;
+        gs.inputDelay = cfg.delay || 0;
+        gs.phase = "playing";
+        if (idx > 0) {
+          playSFX("roundtransition");
+          showNotif(`⚡ Round ${idx + 1} — ${cfg.hint}`, "#ffe066");
+        }
+        updateHUD();
+        updateDisplay();
+      }
+      function advanceTarget() {
+        const cfg = getCfg();
+        gs.targetIdx++;
+        if (gs.targetIdx < cfg.targets.length) {
+          gs.targetTemp = cfg.targets[gs.targetIdx];
+          gs.holdProgress = 0;
+          playSFX("roundtransition");
+          showNotif(`🎯 Next: ${gs.targetTemp}°C`, "#00d4ff");
+        } else {
+          roundWon();
+        }
+      }
+      function roundWon() {
+        gs.score += getCfg().pts;
+        gs.roundsWon++;
+        gs.streak++;
+        gs.bestStreak = Math.max(gs.bestStreak, gs.streak);
+        playSFX("success");
+        showNotif(`✅ +${getCfg().pts} pts!`, "#4cff91");
+        gs.phase = "transitioning";
+        setTimeout(() => {
+          if (gs.round + 1 >= TOTAL_ROUNDS) endGame(true);
+          else startRound(gs.round + 1);
+        }, 700);
+      }
+      function roundFailed() {
+        gs.streak = 0;
+        gs.lives--;
+        if (gs.lives <= 0) {
+          gs.lives = 0;
+          playSFX("loselife");
+          showNotif("💔 No lives left!", "#ff4e00");
+          ["h1", "h2", "h3"].forEach((id, i) =>
+            document.getElementById(id).classList.toggle("lost", i >= gs.lives),
+          );
+          gs.phase = "gameover";
+          setTimeout(() => endGame(false), 900);
+          return;
+        }
+        playSFX("loselife");
+        showNotif("⏱ Time up! Life lost.", "#ff8c42");
+        document.getElementById(`h${gs.lives + 1}`).classList.add("lost");
+        gs.phase = "transitioning";
+        setTimeout(() => {
+          if (gs.round + 1 >= TOTAL_ROUNDS) endGame(false);
+          else startRound(gs.round + 1);
+        }, 700);
+      }
+      function endGame(won) {
+        stopMusic();
+        gs.phase = "over";
+        playSFX(won ? "victory" : "gameover");
+        document.getElementById("finalScore").textContent = gs.score;
+        document.getElementById("finalRounds").textContent = gs.roundsWon;
+        document.getElementById("finalLives").textContent = gs.lives;
+        document.getElementById("finalStreak").textContent = gs.bestStreak;
+        const t = document.getElementById("endTitle");
+        t.className = "end-title " + (won ? "win" : "lose");
+        t.textContent = won ? "🎉 VICTORY!" : "💀 GAME OVER";
+        showScreen("endScreen");
+      }
+
+      /* ═══════ GAME LOOP ═══════ */
+      const BASE_RATE = 20;
+      function applyHeat() {
+        if (gs.phase !== "playing" || gs.paused) return;
+        ensureAudio();
+        playSFX("heat");
+        spawnParticle("heat");
+        inputQueue.push({ type: "heat", time: Date.now() + gs.inputDelay });
+        const btn = document.getElementById("heatBtn");
+        btn.classList.add("pressed");
+        clearTimeout(btn._pt);
+        btn._pt = setTimeout(() => btn.classList.remove("pressed"), 140);
+      }
+      function applyCool() {
+        if (gs.phase !== "playing" || gs.paused) return;
+        ensureAudio();
+        playSFX("cool");
+        spawnParticle("cool");
+        inputQueue.push({ type: "cool", time: Date.now() + gs.inputDelay });
+        const btn = document.getElementById("coolBtn");
+        btn.classList.add("pressed");
+        clearTimeout(btn._pt);
+        btn._pt = setTimeout(() => btn.classList.remove("pressed"), 140);
+      }
+
+      function gameUpdate(ts) {
+        if (!lastTime) lastTime = ts;
+        const dt = Math.min((ts - lastTime) / 1000, 0.1);
+        lastTime = ts;
+        if (gs.paused || gs.phase !== "playing") {
+          updateParticles();
+          drawParticles();
+          rafID = requestAnimationFrame(gameUpdate);
+          return;
+        }
+        const cfg = getCfg(),
+          now = Date.now();
+        let hi = 0,
+          ci = 0;
+        inputQueue = inputQueue.filter((inp) => {
+          if (inp.time <= now) {
+            inp.type === "heat" ? hi++ : ci++;
+            return false;
+          }
+          return true;
+        });
+        const rate = BASE_RATE + cfg.drift * 0.6;
+        gs.currentTemp += (hi - ci) * rate * dt * 2.2;
+        const diff = gs.currentTemp - ROOM_TEMP;
+        gs.currentTemp -= diff * cfg.drift * dt * 0.13;
+        gs.currentTemp = Math.max(-35, Math.min(210, gs.currentTemp));
+        const atTarget = Math.abs(gs.currentTemp - gs.targetTemp) <= cfg.tol;
+        if (atTarget) {
+          gs.holdProgress += dt;
+          if (gs.holdProgress >= cfg.holdTime) advanceTarget();
+        } else {
+          gs.holdProgress = Math.max(0, gs.holdProgress - dt * 0.6);
+        }
+        gs.timer -= dt;
+        if (gs.timer <= 0) {
+          gs.timer = 0;
+          roundFailed();
+        }
+        updateHUD();
+        updateDisplay();
+        updateParticles();
+        drawParticles();
+        rafID = requestAnimationFrame(gameUpdate);
+      }
+
+      /* ═══════ INPUT ═══════ */
+      document.addEventListener("keydown", (e) => {
+        if (e.repeat) return;
+        keysHeld[e.key] = true;
+        if (e.key === "ArrowUp" || e.key === "ArrowRight") {
+          e.preventDefault();
+          applyHeat();
+          if (!keyRepeat)
+            keyRepeat = setInterval(() => {
+              if (keysHeld["ArrowUp"] || keysHeld["ArrowRight"]) applyHeat();
+              if (keysHeld["ArrowDown"] || keysHeld["ArrowLeft"]) applyCool();
+            }, 80);
+        }
+        if (e.key === "ArrowDown" || e.key === "ArrowLeft") {
+          e.preventDefault();
+          applyCool();
+          if (!keyRepeat)
+            keyRepeat = setInterval(() => {
+              if (keysHeld["ArrowUp"] || keysHeld["ArrowRight"]) applyHeat();
+              if (keysHeld["ArrowDown"] || keysHeld["ArrowLeft"]) applyCool();
+            }, 80);
+        }
+        if (e.key === " ") {
+          e.preventDefault();
+          gs.paused = !gs.paused;
+          showNotif(gs.paused ? "⏸ Paused" : "▶ Resumed", "#ffe066");
+        }
+        if (e.key === "m" || e.key === "M") toggleMute();
+      });
+      document.addEventListener("keyup", (e) => {
+        keysHeld[e.key] = false;
+        if (
+          !keysHeld["ArrowUp"] &&
+          !keysHeld["ArrowRight"] &&
+          !keysHeld["ArrowDown"] &&
+          !keysHeld["ArrowLeft"]
+        ) {
+          clearInterval(keyRepeat);
+          keyRepeat = null;
+        }
+      });
+
+      function setupHold(id, fn) {
+        const btn = document.getElementById(id);
+        let hi = null;
+        const s = (e) => {
+          e.preventDefault();
+          fn();
+          hi = setInterval(fn, 80);
+        };
+        const end = (e) => {
+          e.preventDefault();
+          clearInterval(hi);
+          hi = null;
+        };
+        btn.addEventListener("mousedown", s);
+        btn.addEventListener("mouseup", end);
+        btn.addEventListener("mouseleave", end);
+        btn.addEventListener("touchstart", s, { passive: false });
+        btn.addEventListener("touchend", end, { passive: false });
+        btn.addEventListener("touchcancel", end, { passive: false });
+      }
+
+      /* ═══════ SCREENS ═══════ */
+      function showScreen(id) {
+        document
+          .querySelectorAll(".screen")
+          .forEach((s) => s.classList.remove("active"));
+        document.getElementById(id).classList.add("active");
+        if (id === "gameScreen") resizeCanvas();
+      }
+
+      function startGame() {
+        ensureAudio();
+        if (audioCtx && audioCtx.state === "suspended") audioCtx.resume();
+        resetGame();
+        showScreen("gameScreen");
+        if (!musicRunning) startMusic();
+        if (rafID) cancelAnimationFrame(rafID);
+        lastTime = 0;
+        inputQueue = [];
+        particles = [];
+        startRound(0);
+        rafID = requestAnimationFrame(gameUpdate);
+      }
+
+      /* ═══════ INIT ═══════ */
+      document.getElementById("startPlayBtn").addEventListener("click", () => {
+        ensureAudio();
+        if (audioCtx && audioCtx.state === "suspended") audioCtx.resume();
+        startGame();
+      });
+      document.getElementById("startNowBtn").addEventListener("click", () => {
+        ensureAudio();
+        if (audioCtx && audioCtx.state === "suspended") audioCtx.resume();
+        startGame();
+      });
+      document
+        .getElementById("startHowBtn")
+        .addEventListener("click", () => showScreen("instrScreen"));
+      document
+        .getElementById("startHowBtn")
+        .addEventListener("click", () => showScreen("instrScreen"));
+      document
+        .getElementById("backBtn")
+        .addEventListener("click", () => showScreen("startScreen"));
+      document.getElementById("retryBtn").addEventListener("click", startGame);
+      document.getElementById("menuBtn").addEventListener("click", () => {
+        stopMusic();
+        if (rafID) cancelAnimationFrame(rafID);
+        showScreen("startScreen");
+      });
+      document.getElementById("muteBtn").addEventListener("click", toggleMute);
+      setupHold("heatBtn", applyHeat);
+      setupHold("coolBtn", applyCool);
+
+      /* Animated logo thermometer on start screen */
+      (function () {
+        let t = 0;
+        function tick() {
+          t += 0.02;
+          const pct = 0.3 + 0.5 * (0.5 + 0.5 * Math.sin(t));
+          const y = 112 - pct * 100,
+            h = pct * 100;
+          const m = document.getElementById("logoMercury");
+          if (m) {
+            m.setAttribute("y", y);
+            m.setAttribute("height", Math.max(2, h));
+          }
+          requestAnimationFrame(tick);
+        }
+        tick();
+      })();
+    </script><!-- game logic -->
+  </body>
+</html>
